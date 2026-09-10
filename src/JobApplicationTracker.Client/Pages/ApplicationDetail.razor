@@ -131,7 +131,7 @@ else
                     <span class="text-muted">— @change.ChangedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</span>
                     @if (change.IsCorrection)
                     {
-                        <span class="badge bg-warning text-dark ms-1">manuell korrigering</span>
+                        <span class="tag-correction ms-1">manuell korrigering</span>
                     }
                     @if (!string.IsNullOrWhiteSpace(change.Note))
                     {

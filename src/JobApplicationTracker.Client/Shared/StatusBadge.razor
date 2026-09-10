@@ -1,16 +1,16 @@
-<span class="badge @BadgeClass">@Status</span>
+<span class="status-pill @PillClass">@Status</span>
 
 @code {
     [Parameter, EditorRequired]
     public required string Status { get; set; }
 
-    private string BadgeClass => Status switch
+    private string PillClass => Status switch
     {
-        "Applied" => "bg-secondary",
-        "Interviewing" => "bg-primary",
-        "Offer" => "bg-success",
-        "Rejected" => "bg-danger",
-        "Withdrawn" => "bg-dark",
-        _ => "bg-light text-dark",
+        "Applied" => "status-pill--applied",
+        "Interviewing" => "status-pill--interviewing",
+        "Offer" => "status-pill--offer",
+        "Rejected" => "status-pill--rejected",
+        "Withdrawn" => "status-pill--withdrawn",
+        _ => "status-pill--unknown",
     };
 }
