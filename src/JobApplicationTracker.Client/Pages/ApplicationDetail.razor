@@ -1,0 +1,174 @@
+@page "/applications/{Id:int}"
+@inject IJobApplicationApiClient Api
+@inject NavigationManager Nav
+
+<PageTitle>@(_application?.CompanyName ?? "Ansökan")</PageTitle>
+
+@if (_loadError is not null)
+{
+    <div class="alert alert-danger">@_loadError</div>
+    <a class="btn btn-link" href="/applications">Tillbaka till listan</a>
+}
+else if (_application is null)
+{
+    <p><em>Laddar...</em></p>
+}
+else
+{
+    <div class="d-flex justify-content-between align-items-start mb-3">
+        <div>
+            <h1>@_application.RoleTitle</h1>
+            <h5 class="text-muted">@_application.CompanyName</h5>
+        </div>
+        <StatusBadge Status="@_application.Status" />
+    </div>
+
+    <dl class="row">
+        <dt class="col-sm-3">Sökt</dt>
+        <dd class="col-sm-9">@_application.AppliedOn.ToString("yyyy-MM-dd")</dd>
+
+        @if (!string.IsNullOrWhiteSpace(_application.JobPostingUrl))
+        {
+            <dt class="col-sm-3">Annons</dt>
+            <dd class="col-sm-9"><a href="@_application.JobPostingUrl" target="_blank" rel="noopener">@_application.JobPostingUrl</a></dd>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(_application.Notes))
+        {
+            <dt class="col-sm-3">Anteckningar</dt>
+            <dd class="col-sm-9">@_application.Notes</dd>
+        }
+    </dl>
+
+    <div class="mb-4">
+        <a class="btn btn-outline-secondary btn-sm" href="/applications/@Id/edit">Redigera</a>
+
+        @if (!_confirmingDelete)
+        {
+            <button class="btn btn-outline-danger btn-sm" @onclick="() => _confirmingDelete = true">Radera</button>
+        }
+        else
+        {
+            <span class="text-danger me-2">Säker på att du vill radera?</span>
+            <button class="btn btn-danger btn-sm" @onclick="HandleDelete" disabled="@_deleting">Ja, radera</button>
+            <button class="btn btn-outline-secondary btn-sm" @onclick="() => _confirmingDelete = false">Avbryt</button>
+        }
+    </div>
+
+    <h4>Ändra status</h4>
+    @if (_statusError is not null)
+    {
+        <div class="alert alert-warning">@_statusError</div>
+    }
+    <div class="btn-group mb-4" role="group">
+        @foreach (var status in AllStatuses)
+        {
+            @if (status != _application.Status)
+            {
+                <button class="btn btn-outline-primary btn-sm" @onclick="() => HandleStatusChange(status)" disabled="@_changingStatus">
+                    → @status
+                </button>
+            }
+        }
+    </div>
+
+    <h4>Statushistorik</h4>
+    @if (_history is null)
+    {
+        <p><em>Laddar historik...</em></p>
+    }
+    else
+    {
+        <ul class="list-group">
+            @foreach (var change in _history)
+            {
+                <li class="list-group-item">
+                    @(change.FromStatus ?? "(skapad)") → @change.ToStatus
+                    <span class="text-muted">— @change.ChangedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</span>
+                    @if (!string.IsNullOrWhiteSpace(change.Note))
+                    {
+                        <div class="text-muted fst-italic">@change.Note</div>
+                    }
+                </li>
+            }
+        </ul>
+    }
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private static readonly string[] AllStatuses = { "Applied", "Interviewing", "Offer", "Rejected", "Withdrawn" };
+
+    private JobApplicationDto? _application;
+    private List<StatusChangeDto>? _history;
+    private string? _loadError;
+    private string? _statusError;
+    private bool _changingStatus;
+    private bool _confirmingDelete;
+    private bool _deleting;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            _application = await Api.GetByIdAsync(Id);
+            if (_application is null)
+            {
+                _loadError = "Ansökan hittades inte.";
+                return;
+            }
+
+            _history = await Api.GetStatusHistoryAsync(Id);
+        }
+        catch (Exception ex)
+        {
+            _loadError = $"Kunde inte hämta ansökan: {ex.Message}";
+        }
+    }
+
+    private async Task HandleStatusChange(string newStatus)
+    {
+        _changingStatus = true;
+        _statusError = null;
+        try
+        {
+            var result = await Api.ChangeStatusAsync(Id, new ChangeStatusRequest { NewStatus = newStatus });
+            if (!result.Success)
+            {
+                _statusError = $"Kan inte ändra status till {newStatus} härifrån — ansökningar kan bara gå framåt i processen, eller till Rejected/Withdrawn, aldrig bakåt.";
+            }
+            else
+            {
+                _application = result.Application;
+                _history = await Api.GetStatusHistoryAsync(Id);
+            }
+        }
+        catch (Exception ex)
+        {
+            _statusError = $"Kunde inte ändra status: {ex.Message}";
+        }
+        finally
+        {
+            _changingStatus = false;
+        }
+    }
+
+    private async Task HandleDelete()
+    {
+        _deleting = true;
+        try
+        {
+            await Api.DeleteAsync(Id);
+            Nav.NavigateTo("/applications");
+        }
+        catch (Exception ex)
+        {
+            _loadError = $"Kunde inte radera: {ex.Message}";
+            _deleting = false;
+        }
+    }
+}

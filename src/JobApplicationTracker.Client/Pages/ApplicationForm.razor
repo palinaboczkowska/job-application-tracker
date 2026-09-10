@@ -1,0 +1,159 @@
+@page "/applications/new"
+@page "/applications/{Id:int}/edit"
+@inject IJobApplicationApiClient Api
+@inject NavigationManager Nav
+
+<PageTitle>@(IsEditMode ? "Redigera ansökan" : "Ny ansökan")</PageTitle>
+
+<h1>@(IsEditMode ? "Redigera ansökan" : "Ny ansökan")</h1>
+
+@if (_loadError is not null)
+{
+    <div class="alert alert-danger">@_loadError</div>
+}
+else if (IsEditMode && !_loaded)
+{
+    <p><em>Laddar...</em></p>
+}
+else
+{
+    <EditForm Model="_model" OnValidSubmit="HandleSubmit" class="col-md-6">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="mb-3">
+            <label class="form-label" for="companyName">Företag</label>
+            <InputText id="companyName" class="form-control" @bind-Value="_model.CompanyName" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label" for="roleTitle">Roll</label>
+            <InputText id="roleTitle" class="form-control" @bind-Value="_model.RoleTitle" />
+        </div>
+
+        @if (!IsEditMode)
+        {
+            <div class="mb-3">
+                <label class="form-label" for="appliedOn">Sökt datum</label>
+                <InputDate id="appliedOn" class="form-control" @bind-Value="_appliedOn" />
+            </div>
+        }
+
+        <div class="mb-3">
+            <label class="form-label" for="jobPostingUrl">Länk till annons</label>
+            <InputText id="jobPostingUrl" class="form-control" @bind-Value="_model.JobPostingUrl" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label" for="notes">Anteckningar</label>
+            <InputTextArea id="notes" class="form-control" rows="4" @bind-Value="_model.Notes" />
+        </div>
+
+        @if (_saveError is not null)
+        {
+            <div class="alert alert-danger">@_saveError</div>
+        }
+
+        <button type="submit" class="btn btn-primary" disabled="@_saving">Spara</button>
+        <a class="btn btn-link" href="@CancelHref">Avbryt</a>
+    </EditForm>
+}
+
+@code {
+    [Parameter]
+    public int? Id { get; set; }
+
+    private bool IsEditMode => Id.HasValue;
+    private string CancelHref => IsEditMode ? $"/applications/{Id}" : "/applications";
+
+    private readonly FormModel _model = new();
+    private DateOnly _appliedOn = DateOnly.FromDateTime(DateTime.Today);
+    private bool _loaded;
+    private string? _loadError;
+    private string? _saveError;
+    private bool _saving;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!IsEditMode)
+        {
+            return;
+        }
+
+        try
+        {
+            var existing = await Api.GetByIdAsync(Id!.Value);
+            if (existing is null)
+            {
+                _loadError = "Ansökan hittades inte.";
+                return;
+            }
+
+            _model.CompanyName = existing.CompanyName;
+            _model.RoleTitle = existing.RoleTitle;
+            _model.JobPostingUrl = existing.JobPostingUrl;
+            _model.Notes = existing.Notes;
+            _loaded = true;
+        }
+        catch (Exception ex)
+        {
+            _loadError = $"Kunde inte hämta ansökan: {ex.Message}";
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        _saving = true;
+        _saveError = null;
+        try
+        {
+            if (IsEditMode)
+            {
+                await Api.UpdateAsync(Id!.Value, new UpdateJobApplicationRequest
+                {
+                    CompanyName = _model.CompanyName,
+                    RoleTitle = _model.RoleTitle,
+                    JobPostingUrl = string.IsNullOrWhiteSpace(_model.JobPostingUrl) ? null : _model.JobPostingUrl,
+                    Notes = string.IsNullOrWhiteSpace(_model.Notes) ? null : _model.Notes,
+                });
+                Nav.NavigateTo($"/applications/{Id}");
+            }
+            else
+            {
+                var created = await Api.CreateAsync(new CreateJobApplicationRequest
+                {
+                    CompanyName = _model.CompanyName,
+                    RoleTitle = _model.RoleTitle,
+                    AppliedOn = _appliedOn,
+                    JobPostingUrl = string.IsNullOrWhiteSpace(_model.JobPostingUrl) ? null : _model.JobPostingUrl,
+                    Notes = string.IsNullOrWhiteSpace(_model.Notes) ? null : _model.Notes,
+                });
+                Nav.NavigateTo($"/applications/{created.Id}");
+            }
+        }
+        catch (Exception ex)
+        {
+            _saveError = $"Kunde inte spara: {ex.Message}";
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private class FormModel
+    {
+        [Required(ErrorMessage = "Ange företagsnamn.")]
+        [MaxLength(200)]
+        public string CompanyName { get; set; } = "";
+
+        [Required(ErrorMessage = "Ange rolltitel.")]
+        [MaxLength(200)]
+        public string RoleTitle { get; set; } = "";
+
+        [Url(ErrorMessage = "Ange en giltig URL.")]
+        public string? JobPostingUrl { get; set; }
+
+        public string? Notes { get; set; }
+    }
+}

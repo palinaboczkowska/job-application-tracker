@@ -1,0 +1,69 @@
+@page "/"
+@page "/applications"
+@inject IJobApplicationApiClient Api
+@inject NavigationManager Nav
+
+<PageTitle>Ansökningar</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Jobbansökningar</h1>
+    <a class="btn btn-primary" href="/applications/new">+ Ny ansökan</a>
+</div>
+
+@if (_loadError is not null)
+{
+    <div class="alert alert-danger">@_loadError</div>
+}
+else if (_applications is null)
+{
+    <p><em>Laddar...</em></p>
+}
+else if (_applications.Count == 0)
+{
+    <p class="text-muted">Inga ansökningar registrerade ännu.</p>
+}
+else
+{
+    <table class="table table-hover align-middle">
+        <thead>
+            <tr>
+                <th>Företag</th>
+                <th>Roll</th>
+                <th>Status</th>
+                <th>Sökt</th>
+                <th>Uppdaterad</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var application in _applications)
+            {
+                <tr style="cursor:pointer" @onclick="() => GoToDetail(application.Id)">
+                    <td>@application.CompanyName</td>
+                    <td>@application.RoleTitle</td>
+                    <td><StatusBadge Status="@application.Status" /></td>
+                    <td>@application.AppliedOn.ToString("yyyy-MM-dd")</td>
+                    <td>@application.UpdatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<JobApplicationDto>? _applications;
+    private string? _loadError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _applications = await Api.GetAllAsync();
+        }
+        catch (Exception ex)
+        {
+            _loadError = $"Kunde inte hämta ansökningar: {ex.Message}";
+        }
+    }
+
+    private void GoToDetail(int id) => Nav.NavigateTo($"/applications/{id}");
+}

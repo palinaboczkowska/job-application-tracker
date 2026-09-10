@@ -1,0 +1,16 @@
+<span class="badge @BadgeClass">@Status</span>
+
+@code {
+    [Parameter, EditorRequired]
+    public required string Status { get; set; }
+
+    private string BadgeClass => Status switch
+    {
+        "Applied" => "bg-secondary",
+        "Interviewing" => "bg-primary",
+        "Offer" => "bg-success",
+        "Rejected" => "bg-danger",
+        "Withdrawn" => "bg-dark",
+        _ => "bg-light text-dark",
+    };
+}

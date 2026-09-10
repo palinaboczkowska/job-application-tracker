@@ -13,7 +13,10 @@ ever.
       `WebApplicationFactory` integration tests. Verified live with real
       `curl` requests: 201 with Location on create, 200 on a valid status
       transition, 409 on an invalid one, 204 + 404 on delete
-- [ ] Session 3 — Blazor WebAssembly frontend
+- [x] Session 3 — Blazor WebAssembly frontend calling the real API over CORS.
+      Verified live in a browser: seeded list renders, create a new
+      application, walk it through status changes, an invalid backward
+      transition shows a friendly message (not a crash), delete it again
 - [ ] Session 4 — docs, CI, GitHub push
 
 ## Quickstart

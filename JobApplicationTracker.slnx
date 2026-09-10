@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/JobApplicationTracker.Api/JobApplicationTracker.Api.csproj" />
+    <Project Path="src/JobApplicationTracker.Client/JobApplicationTracker.Client.csproj" />
     <Project Path="src/JobApplicationTracker.Contracts/JobApplicationTracker.Contracts.csproj" />
     <Project Path="src/JobApplicationTracker.Domain/JobApplicationTracker.Domain.csproj" />
   </Folder>
