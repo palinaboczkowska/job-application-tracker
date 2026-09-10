@@ -29,5 +29,11 @@ public interface IJobApplicationApiClient
 
     Task<StatusChangeResult> ChangeStatusAsync(int id, ChangeStatusRequest request);
 
+    /// <summary>
+    /// Sets the status directly, bypassing the normal transition rules --
+    /// for correcting a mistake, not for everyday status progress.
+    /// </summary>
+    Task<StatusChangeResult> CorrectStatusAsync(int id, ChangeStatusRequest request);
+
     Task DeleteAsync(int id);
 }

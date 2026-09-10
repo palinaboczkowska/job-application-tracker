@@ -67,6 +67,18 @@ public class JobApplicationApiClient : IJobApplicationApiClient
         return new StatusChangeResult { Success = true, Application = application };
     }
 
+    public async Task<StatusChangeResult> CorrectStatusAsync(int id, ChangeStatusRequest request)
+    {
+        var response = await _http.PatchAsJsonAsync($"api/job-applications/{id}/status/correct", request);
+        if (!response.IsSuccessStatusCode)
+        {
+            return new StatusChangeResult { Success = false };
+        }
+
+        var application = await response.Content.ReadFromJsonAsync<JobApplicationDto>();
+        return new StatusChangeResult { Success = true, Application = application };
+    }
+
     public async Task DeleteAsync(int id)
     {
         var response = await _http.DeleteAsync($"api/job-applications/{id}");

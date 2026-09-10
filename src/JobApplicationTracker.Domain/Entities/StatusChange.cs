@@ -19,4 +19,11 @@ public class StatusChange
     public DateTime ChangedAt { get; set; }
 
     public string? Note { get; set; }
+
+    /// <summary>
+    /// True when this entry came from the manual-correction endpoint, which
+    /// bypasses <see cref="Services.StatusTransitionValidator"/> entirely --
+    /// for fixing a data-entry mistake, not for normal status progress.
+    /// </summary>
+    public bool IsCorrection { get; set; }
 }

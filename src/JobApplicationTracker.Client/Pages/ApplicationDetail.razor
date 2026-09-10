@@ -72,6 +72,46 @@ else
         }
     </div>
 
+    @if (!_showCorrection)
+    {
+        <p>
+            <button class="btn btn-link btn-sm text-muted p-0" @onclick="() => _showCorrection = true">
+                Behöver du korrigera manuellt? (kringgår reglerna ovan)
+            </button>
+        </p>
+    }
+    else
+    {
+        <div class="card border-warning mb-4" style="max-width: 32rem;">
+            <div class="card-body">
+                <h6 class="card-title">Manuell korrigering</h6>
+                <p class="card-text text-muted small">
+                    Sätter statusen direkt utan att följa de vanliga övergångsreglerna —
+                    använd bara för att rätta ett misstag, inte för normal statusändring.
+                </p>
+
+                @if (_correctionError is not null)
+                {
+                    <div class="alert alert-warning py-1 px-2 small">@_correctionError</div>
+                }
+
+                <div class="mb-2">
+                    <select class="form-select form-select-sm" @bind="_correctionStatus">
+                        @foreach (var status in AllStatuses)
+                        {
+                            <option value="@status">@status</option>
+                        }
+                    </select>
+                </div>
+                <div class="mb-2">
+                    <input class="form-control form-control-sm" placeholder="Anteckning (valfritt)" @bind="_correctionNote" />
+                </div>
+                <button class="btn btn-warning btn-sm" @onclick="HandleCorrect" disabled="@_correcting">Korrigera</button>
+                <button class="btn btn-outline-secondary btn-sm" @onclick="() => _showCorrection = false">Avbryt</button>
+            </div>
+        </div>
+    }
+
     <h4>Statushistorik</h4>
     @if (_history is null)
     {
@@ -85,6 +125,10 @@ else
                 <li class="list-group-item">
                     @(change.FromStatus ?? "(skapad)") → @change.ToStatus
                     <span class="text-muted">— @change.ChangedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</span>
+                    @if (change.IsCorrection)
+                    {
+                        <span class="badge bg-warning text-dark ms-1">manuell korrigering</span>
+                    }
                     @if (!string.IsNullOrWhiteSpace(change.Note))
                     {
                         <div class="text-muted fst-italic">@change.Note</div>
@@ -108,6 +152,12 @@ else
     private bool _changingStatus;
     private bool _confirmingDelete;
     private bool _deleting;
+
+    private bool _showCorrection;
+    private string _correctionStatus = "Applied";
+    private string? _correctionNote;
+    private string? _correctionError;
+    private bool _correcting;
 
     protected override async Task OnInitializedAsync() => await LoadAsync();
 
@@ -154,6 +204,39 @@ else
         finally
         {
             _changingStatus = false;
+        }
+    }
+
+    private async Task HandleCorrect()
+    {
+        _correcting = true;
+        _correctionError = null;
+        try
+        {
+            var result = await Api.CorrectStatusAsync(Id, new ChangeStatusRequest
+            {
+                NewStatus = _correctionStatus,
+                Note = string.IsNullOrWhiteSpace(_correctionNote) ? null : _correctionNote,
+            });
+            if (!result.Success)
+            {
+                _correctionError = $"Ansökan har redan status {_correctionStatus}.";
+            }
+            else
+            {
+                _application = result.Application;
+                _history = await Api.GetStatusHistoryAsync(Id);
+                _showCorrection = false;
+                _correctionNote = null;
+            }
+        }
+        catch (Exception ex)
+        {
+            _correctionError = $"Kunde inte korrigera: {ex.Message}";
+        }
+        finally
+        {
+            _correcting = false;
         }
     }
 

@@ -24,5 +24,6 @@ public static class JobApplicationMappingExtensions
         ToStatus = entity.ToStatus.ToString(),
         ChangedAt = entity.ChangedAt,
         Note = entity.Note,
+        IsCorrection = entity.IsCorrection,
     };
 }

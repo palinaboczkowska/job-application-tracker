@@ -150,6 +150,48 @@ public class JobApplicationsController : ControllerBase
         return Ok(application.ToDto());
     }
 
+    /// <summary>
+    /// Sets the status directly, bypassing <see cref="StatusTransitionValidator"/>
+    /// entirely. For fixing a data-entry mistake (e.g. the wrong button was
+    /// clicked) -- not a substitute for the validated <see cref="ChangeStatus"/>
+    /// endpoint, which remains the normal way to move an application forward.
+    /// </summary>
+    [HttpPatch("{id:int}/status/correct")]
+    public async Task<ActionResult<JobApplicationDto>> CorrectStatus(int id, ChangeStatusRequest request)
+    {
+        var application = await _context.JobApplications.FindAsync(id);
+        if (application is null)
+        {
+            return NotFound();
+        }
+
+        if (!Enum.TryParse<ApplicationStatus>(request.NewStatus, ignoreCase: true, out var newStatus))
+        {
+            return BadRequest(new { error = $"Unknown status '{request.NewStatus}'." });
+        }
+
+        if (newStatus == application.Status)
+        {
+            return BadRequest(new { error = $"Already at status '{newStatus}'." });
+        }
+
+        var now = DateTime.UtcNow;
+        _context.StatusChanges.Add(new StatusChange
+        {
+            JobApplicationId = application.Id,
+            FromStatus = application.Status,
+            ToStatus = newStatus,
+            ChangedAt = now,
+            Note = request.Note,
+            IsCorrection = true,
+        });
+        application.Status = newStatus;
+        application.UpdatedAt = now;
+
+        await _context.SaveChangesAsync();
+        return Ok(application.ToDto());
+    }
+
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id)
     {

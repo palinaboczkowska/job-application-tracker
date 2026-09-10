@@ -93,6 +93,46 @@ public class JobApplicationsApiTests : IClassFixture<CustomWebApplicationFactory
     }
 
     [Fact]
+    public async Task CorrectStatus_bypasses_validation_and_flags_the_history_entry()
+    {
+        var created = await CreateApplicationAsync();
+
+        // Applied -> Rejected is a normal, valid transition.
+        var toRejected = await _client.PatchAsJsonAsync(
+            $"/api/job-applications/{created.Id}/status",
+            new ChangeStatusRequest { NewStatus = "Rejected" });
+        toRejected.EnsureSuccessStatusCode();
+
+        // Rejected -> Applied would be refused by the validated endpoint
+        // (Rejected is terminal), but the correction endpoint bypasses that.
+        var corrected = await _client.PatchAsJsonAsync(
+            $"/api/job-applications/{created.Id}/status/correct",
+            new ChangeStatusRequest { NewStatus = "Applied", Note = "Fixed a mis-click" });
+
+        corrected.EnsureSuccessStatusCode();
+        var updated = await corrected.Content.ReadFromJsonAsync<JobApplicationDto>();
+        Assert.Equal("Applied", updated!.Status);
+
+        var history = await _client.GetFromJsonAsync<List<StatusChangeDto>>(
+            $"/api/job-applications/{created.Id}/status-history");
+        var correctionEntry = Assert.Single(history!, c => c.IsCorrection);
+        Assert.Equal("Rejected", correctionEntry.FromStatus);
+        Assert.Equal("Applied", correctionEntry.ToStatus);
+    }
+
+    [Fact]
+    public async Task CorrectStatus_rejects_setting_the_same_status()
+    {
+        var created = await CreateApplicationAsync();
+
+        var response = await _client.PatchAsJsonAsync(
+            $"/api/job-applications/{created.Id}/status/correct",
+            new ChangeStatusRequest { NewStatus = "Applied" });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
     public async Task Delete_removes_the_application()
     {
         var created = await CreateApplicationAsync();

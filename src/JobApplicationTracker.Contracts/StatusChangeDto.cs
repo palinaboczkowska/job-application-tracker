@@ -9,4 +9,6 @@ public class StatusChangeDto
     public DateTime ChangedAt { get; set; }
 
     public string? Note { get; set; }
+
+    public bool IsCorrection { get; set; }
 }
