@@ -2,12 +2,14 @@
 @page "/applications"
 @inject IJobApplicationApiClient Api
 @inject NavigationManager Nav
+@inject ILanguageService Lang
+@implements IDisposable
 
-<PageTitle>Ansökningar</PageTitle>
+<PageTitle>@Lang.T("apps.pageTitle")</PageTitle>
 
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h1>Jobbansökningar</h1>
-    <a class="btn btn-primary" href="/applications/new">+ Ny ansökan</a>
+    <h1>@Lang.T("apps.heading")</h1>
+    <a class="btn btn-primary" href="/applications/new">@Lang.T("apps.newButton")</a>
 </div>
 
 @if (_loadError is not null)
@@ -16,27 +18,27 @@
 }
 else if (_applications is null)
 {
-    <p><em>Laddar...</em></p>
+    <p><em>@Lang.T("common.loading")</em></p>
 }
 else if (_applications.Count == 0)
 {
-    <p class="text-muted">Inga ansökningar registrerade ännu.</p>
+    <p class="text-muted">@Lang.T("apps.empty")</p>
 }
 else
 {
     <div class="row g-2 mb-3">
         <div class="col-sm-4">
-            <input class="form-control form-control-sm" placeholder="Sök på företag..." @bind="_companyFilter" @bind:event="oninput" />
+            <input class="form-control form-control-sm" placeholder="@Lang.T("apps.filterCompany")" @bind="_companyFilter" @bind:event="oninput" />
         </div>
         <div class="col-sm-4">
-            <input class="form-control form-control-sm" placeholder="Filtrera på roll..." @bind="_roleFilter" @bind:event="oninput" />
+            <input class="form-control form-control-sm" placeholder="@Lang.T("apps.filterRole")" @bind="_roleFilter" @bind:event="oninput" />
         </div>
         <div class="col-sm-4">
             <select class="form-select form-select-sm" @bind="_statusFilter">
-                <option value="">Alla statusar</option>
+                <option value="">@Lang.T("apps.filterAllStatuses")</option>
                 @foreach (var status in AllStatuses)
                 {
-                    <option value="@status">@status</option>
+                    <option value="@status">@Lang.StatusLabel(status)</option>
                 }
             </select>
         </div>
@@ -44,18 +46,18 @@ else
 
     @if (FilteredApplications.Count == 0)
     {
-        <p class="text-muted">Inga ansökningar matchar filtren.</p>
+        <p class="text-muted">@Lang.T("apps.filterEmpty")</p>
     }
     else
     {
         <table class="table table-hover align-middle">
             <thead>
                 <tr>
-                    <th>Företag</th>
-                    <th>Roll</th>
-                    <th>Status</th>
-                    <th>Sökt</th>
-                    <th>Uppdaterad</th>
+                    <th>@Lang.T("apps.colCompany")</th>
+                    <th>@Lang.T("apps.colRole")</th>
+                    <th>@Lang.T("apps.colStatus")</th>
+                    <th>@Lang.T("apps.colApplied")</th>
+                    <th>@Lang.T("apps.colUpdated")</th>
                 </tr>
             </thead>
             <tbody>
@@ -95,15 +97,22 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        Lang.Changed += StateHasChanged;
+
         try
         {
             _applications = await Api.GetAllAsync();
         }
         catch (Exception ex)
         {
-            _loadError = $"Kunde inte hämta ansökningar: {ex.Message}";
+            _loadError = Lang.T("apps.loadError", ex.Message);
         }
     }
 
     private void GoToDetail(int id) => Nav.NavigateTo($"/applications/{id}");
+
+    public void Dispose()
+    {
+        Lang.Changed -= StateHasChanged;
+    }
 }

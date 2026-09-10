@@ -1,22 +1,24 @@
 @page "/applications/{Id:int}"
 @inject IJobApplicationApiClient Api
 @inject NavigationManager Nav
+@inject ILanguageService Lang
+@implements IDisposable
 
-<PageTitle>@(_application?.CompanyName ?? "Ansökan")</PageTitle>
+<PageTitle>@(_application?.CompanyName ?? Lang.T("detail.pageTitleFallback"))</PageTitle>
 
 @if (_loadError is not null)
 {
     <div class="alert alert-danger">@_loadError</div>
-    <a class="btn btn-link" href="/applications">Tillbaka till listan</a>
+    <a class="btn btn-link" href="/applications">@Lang.T("detail.backToList")</a>
 }
 else if (_application is null)
 {
-    <p><em>Laddar...</em></p>
+    <p><em>@Lang.T("common.loading")</em></p>
 }
 else
 {
     <p>
-        <a class="btn btn-outline-secondary btn-sm" href="/applications">← Alla ansökningar</a>
+        <a class="btn btn-outline-secondary btn-sm" href="/applications">@Lang.T("detail.backShort")</a>
     </p>
 
     <div class="d-flex justify-content-between align-items-start mb-3">
@@ -28,38 +30,38 @@ else
     </div>
 
     <dl class="row">
-        <dt class="col-sm-3">Sökt</dt>
+        <dt class="col-sm-3">@Lang.T("detail.labelApplied")</dt>
         <dd class="col-sm-9">@_application.AppliedOn.ToString("yyyy-MM-dd")</dd>
 
         @if (!string.IsNullOrWhiteSpace(_application.JobPostingUrl))
         {
-            <dt class="col-sm-3">Annons</dt>
+            <dt class="col-sm-3">@Lang.T("detail.labelPosting")</dt>
             <dd class="col-sm-9"><a href="@_application.JobPostingUrl" target="_blank" rel="noopener">@_application.JobPostingUrl</a></dd>
         }
 
         @if (!string.IsNullOrWhiteSpace(_application.Notes))
         {
-            <dt class="col-sm-3">Anteckningar</dt>
+            <dt class="col-sm-3">@Lang.T("detail.labelNotes")</dt>
             <dd class="col-sm-9">@_application.Notes</dd>
         }
     </dl>
 
     <div class="mb-4">
-        <a class="btn btn-outline-secondary btn-sm" href="/applications/@Id/edit">Redigera</a>
+        <a class="btn btn-outline-secondary btn-sm" href="/applications/@Id/edit">@Lang.T("detail.edit")</a>
 
         @if (!_confirmingDelete)
         {
-            <button class="btn btn-outline-danger btn-sm" @onclick="() => _confirmingDelete = true">Radera</button>
+            <button class="btn btn-outline-danger btn-sm" @onclick="() => _confirmingDelete = true">@Lang.T("detail.delete")</button>
         }
         else
         {
-            <span class="text-danger me-2">Säker på att du vill radera?</span>
-            <button class="btn btn-danger btn-sm" @onclick="HandleDelete" disabled="@_deleting">Ja, radera</button>
-            <button class="btn btn-outline-secondary btn-sm" @onclick="() => _confirmingDelete = false">Avbryt</button>
+            <span class="text-danger me-2">@Lang.T("detail.confirmDelete")</span>
+            <button class="btn btn-danger btn-sm" @onclick="HandleDelete" disabled="@_deleting">@Lang.T("detail.confirmDeleteYes")</button>
+            <button class="btn btn-outline-secondary btn-sm" @onclick="() => _confirmingDelete = false">@Lang.T("common.cancel")</button>
         }
     </div>
 
-    <h4>Ändra status</h4>
+    <h4>@Lang.T("detail.changeStatusHeading")</h4>
     @if (_statusError is not null)
     {
         <div class="alert alert-warning">@_statusError</div>
@@ -70,7 +72,7 @@ else
             @if (status != _application.Status)
             {
                 <button class="btn btn-outline-primary btn-sm" @onclick="() => HandleStatusChange(status)" disabled="@_changingStatus">
-                    → @status
+                    → @Lang.StatusLabel(status)
                 </button>
             }
         }
@@ -80,7 +82,7 @@ else
     {
         <p>
             <button class="btn btn-link btn-sm text-muted p-0" @onclick="() => _showCorrection = true">
-                Behöver du korrigera manuellt? (kringgår reglerna ovan)
+                @Lang.T("detail.correctionToggle")
             </button>
         </p>
     }
@@ -88,10 +90,9 @@ else
     {
         <div class="card border-warning mb-4" style="max-width: 32rem;">
             <div class="card-body">
-                <h6 class="card-title">Manuell korrigering</h6>
+                <h6 class="card-title">@Lang.T("detail.correctionHeading")</h6>
                 <p class="card-text text-muted small">
-                    Sätter statusen direkt utan att följa de vanliga övergångsreglerna —
-                    använd bara för att rätta ett misstag, inte för normal statusändring.
+                    @Lang.T("detail.correctionDescription")
                 </p>
 
                 @if (_correctionError is not null)
@@ -103,23 +104,23 @@ else
                     <select class="form-select form-select-sm" @bind="_correctionStatus">
                         @foreach (var status in AllStatuses)
                         {
-                            <option value="@status">@status</option>
+                            <option value="@status">@Lang.StatusLabel(status)</option>
                         }
                     </select>
                 </div>
                 <div class="mb-2">
-                    <input class="form-control form-control-sm" placeholder="Anteckning (valfritt)" @bind="_correctionNote" />
+                    <input class="form-control form-control-sm" placeholder="@Lang.T("detail.correctionNotePlaceholder")" @bind="_correctionNote" />
                 </div>
-                <button class="btn btn-warning btn-sm" @onclick="HandleCorrect" disabled="@_correcting">Korrigera</button>
-                <button class="btn btn-outline-secondary btn-sm" @onclick="() => _showCorrection = false">Avbryt</button>
+                <button class="btn btn-warning btn-sm" @onclick="HandleCorrect" disabled="@_correcting">@Lang.T("detail.correctionSubmit")</button>
+                <button class="btn btn-outline-secondary btn-sm" @onclick="() => _showCorrection = false">@Lang.T("common.cancel")</button>
             </div>
         </div>
     }
 
-    <h4>Statushistorik</h4>
+    <h4>@Lang.T("detail.historyHeading")</h4>
     @if (_history is null)
     {
-        <p><em>Laddar historik...</em></p>
+        <p><em>@Lang.T("detail.historyLoading")</em></p>
     }
     else
     {
@@ -127,11 +128,11 @@ else
             @foreach (var change in _history)
             {
                 <li class="list-group-item">
-                    @(change.FromStatus ?? "(skapad)") → @change.ToStatus
+                    @(change.FromStatus is null ? Lang.T("detail.historyCreated") : Lang.StatusLabel(change.FromStatus)) → @Lang.StatusLabel(change.ToStatus)
                     <span class="text-muted">— @change.ChangedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</span>
                     @if (change.IsCorrection)
                     {
-                        <span class="tag-correction ms-1">manuell korrigering</span>
+                        <span class="tag-correction ms-1">@Lang.T("detail.historyCorrectionTag")</span>
                     }
                     @if (!string.IsNullOrWhiteSpace(change.Note))
                     {
@@ -163,7 +164,11 @@ else
     private string? _correctionError;
     private bool _correcting;
 
-    protected override async Task OnInitializedAsync() => await LoadAsync();
+    protected override async Task OnInitializedAsync()
+    {
+        Lang.Changed += StateHasChanged;
+        await LoadAsync();
+    }
 
     private async Task LoadAsync()
     {
@@ -172,7 +177,7 @@ else
             _application = await Api.GetByIdAsync(Id);
             if (_application is null)
             {
-                _loadError = "Ansökan hittades inte.";
+                _loadError = Lang.T("detail.notFound");
                 return;
             }
 
@@ -180,7 +185,7 @@ else
         }
         catch (Exception ex)
         {
-            _loadError = $"Kunde inte hämta ansökan: {ex.Message}";
+            _loadError = Lang.T("detail.loadError", ex.Message);
         }
     }
 
@@ -193,7 +198,7 @@ else
             var result = await Api.ChangeStatusAsync(Id, new ChangeStatusRequest { NewStatus = newStatus });
             if (!result.Success)
             {
-                _statusError = $"Kan inte ändra status till {newStatus} härifrån — ansökningar kan bara gå framåt i processen, eller till Rejected/Withdrawn, aldrig bakåt.";
+                _statusError = Lang.T("detail.statusChangeError", Lang.StatusLabel(newStatus));
             }
             else
             {
@@ -203,7 +208,7 @@ else
         }
         catch (Exception ex)
         {
-            _statusError = $"Kunde inte ändra status: {ex.Message}";
+            _statusError = Lang.T("detail.statusChangeGenericError", ex.Message);
         }
         finally
         {
@@ -224,7 +229,7 @@ else
             });
             if (!result.Success)
             {
-                _correctionError = $"Ansökan har redan status {_correctionStatus}.";
+                _correctionError = Lang.T("detail.correctionError", Lang.StatusLabel(_correctionStatus));
             }
             else
             {
@@ -236,7 +241,7 @@ else
         }
         catch (Exception ex)
         {
-            _correctionError = $"Kunde inte korrigera: {ex.Message}";
+            _correctionError = Lang.T("detail.correctionGenericError", ex.Message);
         }
         finally
         {
@@ -254,8 +259,13 @@ else
         }
         catch (Exception ex)
         {
-            _loadError = $"Kunde inte radera: {ex.Message}";
+            _loadError = Lang.T("detail.deleteError", ex.Message);
             _deleting = false;
         }
+    }
+
+    public void Dispose()
+    {
+        Lang.Changed -= StateHasChanged;
     }
 }

@@ -2,10 +2,12 @@
 @page "/applications/{Id:int}/edit"
 @inject IJobApplicationApiClient Api
 @inject NavigationManager Nav
+@inject ILanguageService Lang
+@implements IDisposable
 
-<PageTitle>@(IsEditMode ? "Redigera ansökan" : "Ny ansökan")</PageTitle>
+<PageTitle>@(IsEditMode ? Lang.T("form.editTitle") : Lang.T("form.newTitle"))</PageTitle>
 
-<h1>@(IsEditMode ? "Redigera ansökan" : "Ny ansökan")</h1>
+<h1>@(IsEditMode ? Lang.T("form.editTitle") : Lang.T("form.newTitle"))</h1>
 
 @if (_loadError is not null)
 {
@@ -13,7 +15,7 @@
 }
 else if (IsEditMode && !_loaded)
 {
-    <p><em>Laddar...</em></p>
+    <p><em>@Lang.T("common.loading")</em></p>
 }
 else
 {
@@ -22,30 +24,30 @@ else
         <ValidationSummary />
 
         <div class="mb-3">
-            <label class="form-label" for="companyName">Företag</label>
+            <label class="form-label" for="companyName">@Lang.T("form.labelCompany")</label>
             <InputText id="companyName" class="form-control" @bind-Value="_model.CompanyName" />
         </div>
 
         <div class="mb-3">
-            <label class="form-label" for="roleTitle">Roll</label>
+            <label class="form-label" for="roleTitle">@Lang.T("form.labelRole")</label>
             <InputText id="roleTitle" class="form-control" @bind-Value="_model.RoleTitle" />
         </div>
 
         @if (!IsEditMode)
         {
             <div class="mb-3">
-                <label class="form-label" for="appliedOn">Sökt datum</label>
+                <label class="form-label" for="appliedOn">@Lang.T("form.labelAppliedOn")</label>
                 <InputDate id="appliedOn" class="form-control" @bind-Value="_appliedOn" />
             </div>
         }
 
         <div class="mb-3">
-            <label class="form-label" for="jobPostingUrl">Länk till annons</label>
+            <label class="form-label" for="jobPostingUrl">@Lang.T("form.labelPostingUrl")</label>
             <InputText id="jobPostingUrl" class="form-control" @bind-Value="_model.JobPostingUrl" />
         </div>
 
         <div class="mb-3">
-            <label class="form-label" for="notes">Anteckningar</label>
+            <label class="form-label" for="notes">@Lang.T("form.labelNotes")</label>
             <InputTextArea id="notes" class="form-control" rows="4" @bind-Value="_model.Notes" />
         </div>
 
@@ -54,8 +56,8 @@ else
             <div class="alert alert-danger">@_saveError</div>
         }
 
-        <button type="submit" class="btn btn-primary" disabled="@_saving">Spara</button>
-        <a class="btn btn-link" href="@CancelHref">Avbryt</a>
+        <button type="submit" class="btn btn-primary" disabled="@_saving">@Lang.T("form.save")</button>
+        <a class="btn btn-link" href="@CancelHref">@Lang.T("common.cancel")</a>
     </EditForm>
 }
 
@@ -75,6 +77,8 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        Lang.Changed += StateHasChanged;
+
         if (!IsEditMode)
         {
             return;
@@ -85,7 +89,7 @@ else
             var existing = await Api.GetByIdAsync(Id!.Value);
             if (existing is null)
             {
-                _loadError = "Ansökan hittades inte.";
+                _loadError = Lang.T("detail.notFound");
                 return;
             }
 
@@ -97,7 +101,7 @@ else
         }
         catch (Exception ex)
         {
-            _loadError = $"Kunde inte hämta ansökan: {ex.Message}";
+            _loadError = Lang.T("detail.loadError", ex.Message);
         }
     }
 
@@ -133,12 +137,17 @@ else
         }
         catch (Exception ex)
         {
-            _saveError = $"Kunde inte spara: {ex.Message}";
+            _saveError = Lang.T("form.saveError", ex.Message);
         }
         finally
         {
             _saving = false;
         }
+    }
+
+    public void Dispose()
+    {
+        Lang.Changed -= StateHasChanged;
     }
 
     private class FormModel

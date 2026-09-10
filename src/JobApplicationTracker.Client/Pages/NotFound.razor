@@ -1,5 +1,19 @@
-﻿@page "/not-found"
+@page "/not-found"
 @layout MainLayout
+@inject ILanguageService Lang
+@implements IDisposable
 
-<h3>Not Found</h3>
-<p>Sorry, the content you are looking for does not exist.</p>
+<h3>@Lang.T("notfound.heading")</h3>
+<p>@Lang.T("notfound.body")</p>
+
+@code {
+    protected override void OnInitialized()
+    {
+        Lang.Changed += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        Lang.Changed -= StateHasChanged;
+    }
+}

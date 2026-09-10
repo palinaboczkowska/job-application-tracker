@@ -1,4 +1,7 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
+﻿@inject ILanguageService Lang
+@implements IDisposable
+
+<div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
         <a class="navbar-brand" href="">Job Application Tracker</a>
         <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
@@ -11,15 +14,20 @@
     <nav class="nav flex-column">
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Ansökningar
+                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> @Lang.T("nav.applications")
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="applications/new">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Ny ansökan
+                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> @Lang.T("nav.newApplication")
             </NavLink>
         </div>
     </nav>
+
+    <div class="lang-switcher px-3" @onclick:stopPropagation="true">
+        <button type="button" class="lang-btn @(Lang.Language == "sv" ? "active" : "")" @onclick='() => Lang.SetLanguageAsync("sv")'>SV</button>
+        <button type="button" class="lang-btn @(Lang.Language == "en" ? "active" : "")" @onclick='() => Lang.SetLanguageAsync("en")'>EN</button>
+    </div>
 </div>
 
 @code {
@@ -27,8 +35,18 @@
 
     private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
 
+    protected override void OnInitialized()
+    {
+        Lang.Changed += StateHasChanged;
+    }
+
     private void ToggleNavMenu()
     {
         collapseNavMenu = !collapseNavMenu;
+    }
+
+    public void Dispose()
+    {
+        Lang.Changed -= StateHasChanged;
     }
 }

@@ -76,6 +76,40 @@
     color: #f1f1f8;
 }
 
+.lang-switcher {
+    display: flex;
+    gap: 0.4rem;
+    padding-top: 0.75rem;
+    padding-bottom: 1rem;
+    margin-top: 0.5rem;
+    border-top: 1px solid #24263a;
+}
+
+.lang-btn {
+    flex: 1;
+    background: transparent;
+    border: 1px solid #24263a;
+    border-radius: 10px;
+    color: #888aa3;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    padding: 0.4rem 0;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.lang-btn:hover {
+    color: #f1f1f8;
+    background-color: rgba(255, 255, 255, 0.06);
+}
+
+.lang-btn.active {
+    background-color: rgb(45 212 191 / 0.14);
+    border-color: transparent;
+    color: #2dd4bf;
+}
+
 @media (min-width: 641px) {
     .navbar-toggler {
         display: none;
