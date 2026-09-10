@@ -56,6 +56,11 @@ mistake, and every correction it makes is flagged in the audit trail. See
       Since extended with a manual status-correction escape hatch, list
       filtering (company/role/status), and a back-to-list button
 - [x] Session 4 — docs, CI, GitHub push
+- [x] Session 5 — custom dark theme; Swedish/English language selector
+      (`Services/LanguageService.cs`, event-based, persisted to
+      `localStorage` — sidesteps Blazor WASM's CultureInfo/resx
+      satellite-assembly loading). Verified live in a browser: every page,
+      the nav, and status labels switch instantly and survive a reload
 
 ## Quickstart
 
@@ -85,6 +90,11 @@ curl http://localhost:5097/api/job-applications
 - CORS allowed origins are the development ports
   (`src/JobApplicationTracker.Api/appsettings.Development.json`) — a real
   deployment would need its actual origin configured.
+- Form validation messages (`Pages/ApplicationForm.razor`'s `FormModel`)
+  stay in Swedish regardless of the selected language —
+  `DataAnnotations` attribute values must be compile-time constants, so
+  making them language-aware would need a custom validator instead of
+  `[Required(ErrorMessage = ...)]`.
 
 ## License
 
